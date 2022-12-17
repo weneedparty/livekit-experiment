@@ -40,6 +40,8 @@ I don't care much of UI and ofcourse I am willing to pay any code part that you 
 ## Resources
 ### A Server
 ```
+ssh-copy-id root@23.88.103.76
+
 ssh root@23.88.103.76
 
 # password: livekitapp
