@@ -12,7 +12,7 @@ folder 1: Basic Functionality
 
 ```
 -> Audio and Video Calls between 2 users.
--> Group Audio and Group Video calls between 3 users.
+-> Group Audio and Group Video calls between 3 (or more) users.
 -> Save/Store any Audio or Video call in the backend server (maybe in mp4 format?) for Security and GDPR purposes.
 -> Why? This is a basic functionality that any mobile application uses.
 ```
