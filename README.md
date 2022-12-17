@@ -31,6 +31,8 @@ folder 3: Clubhouse like clone
 -> Simple Flutter Application that combines the Basic and Extra Functionalities.
 ```
 
+Goal is to make every process so clean (step by step) and detailed (comments) that we use only copy paste commands.
+As a final result, we will have a fully reproducible application and a documentation where we can learn and understand each phase/process of LiveKit software.
 
 ## Some Notes:
 
