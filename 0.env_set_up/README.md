@@ -32,6 +32,8 @@ sudo apt install docker-compose
 ## Set up `cloudflare` DNS configuration
 ### 1. buy a domain
 ### 2. bind it to `cloudflare`
+https://community.cloudflare.com/t/step-1-adding-your-domain-to-cloudflare/64309
+
 ### 3. set up two `A record`
 ![](images/1.setup_two_a_records.png)
 
