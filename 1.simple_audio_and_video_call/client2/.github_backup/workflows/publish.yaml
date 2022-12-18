@@ -1,0 +1,37 @@
+name: Publish build
+
+on:
+  push:
+    # only publish on version tags
+    tags:
+      - v*
+
+jobs:
+  publish:
+    # This job will run on ubuntu virtual machine
+    runs-on: ubuntu-latest
+    steps:
+      # Setup the flutter environment.
+      - uses: subosito/flutter-action@v1
+
+      - uses: actions/checkout@v2
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v1
+        with:
+          path: /opt/hostedtoolcache/flutter
+          key: ${{ runner.OS }}-flutter-install-cache-${{ env.flutter_version }}
+
+      - run: flutter pub get
+      - run: flutter pub global activate dartdoc
+
+      # Generate docs
+      - run: dartdoc
+
+      # Upload docs to S3
+      - name: S3 Upload
+        run: aws s3 cp doc/api s3://livekit-docs/client-sdk-flutter --recursive
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DOCS_DEPLOY_AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DOCS_DEPLOY_AWS_API_SECRET }}
+          AWS_DEFAULT_REGION: "us-east-1"
