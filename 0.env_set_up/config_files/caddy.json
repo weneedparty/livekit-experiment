@@ -1,0 +1,131 @@
+{
+    "logging": {
+        "logs": {
+            "default": {
+                "level": "INFO"
+            }
+        }
+    },
+    "storage": {
+        "module": "file_system",
+        "root": "/data"
+    },
+    "apps": {
+        "tls": {
+            "certificates": {
+                "automate": [
+                    "livekit-test.ai-tools-online.xyz",
+                    "livekit-test-turn.ai-tools-online.xyz",
+                    "livekit-test-grpc-call-service.ai-tools-online.xyz"
+                ]
+            }
+        },
+        "http": {
+            "servers": {
+                "main_": {
+                    "listen": [
+                        ":443"
+                    ],
+                    "routes": [
+                        {
+                            "match": [
+                                {
+                                    "host": [
+                                        "livekit-test-grpc-call-service.ai-tools-online.xyz"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "handle": [
+                                {
+                                    "handler": "reverse_proxy",
+                                    "flush_interval": -1,
+                                    "transport": {
+                                        "protocol": "http",
+                                        "versions": ["h2c", "2"]
+                                    },
+                                    "upstreams": [
+                                        {
+                                            "Dial": "localhost:40058"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "layer4": {
+            "servers": {
+                "main": {
+                    "listen": [
+                        ":443"
+                    ],
+                    "routes": [
+                        {
+                            "match": [
+                                {
+                                    "tls": {
+                                        "sni": [
+                                            "livekit-test-turn.ai-tools-online.xyz"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "handle": [
+                                {
+                                    "handler": "tls"
+                                },
+                                {
+                                    "handler": "proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": [
+                                                "localhost:5349"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "match": [
+                                {
+                                    "tls": {
+                                        "sni": [
+                                            "livekit-test.ai-tools-online.xyz"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "handle": [
+                                {
+                                    "handler": "tls",
+                                    "connection_policies": [
+                                        {
+                                            "alpn": [
+                                                "http/1.1"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "handler": "proxy",
+                                    "upstreams": [
+                                        {
+                                            "dial": [
+                                                "localhost:7880"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}

@@ -43,17 +43,164 @@ livekit-test.ai-tools-online.xyz
 
 livekit-test-turn.ai-tools-online.xyz
 
+livekit-test-grpc-call-service.ai-tools-online.xyz
+
 
 ## Generate livekit configuration
 > https://docs.livekit.io/oss/deployment/vm/#deploy-to-a-vm
 
 ```bash
 docker run --rm -it -v $PWD/livekit_config:/output livekit/generate
+
+cd livekit_config/livekit-test.ai-tools-online.xyz
+ls
 ```
 
-```bash
-cd ~/livekit_config/livekit-test.ai-tools.online.xyz
+You'll get following files after you run the above command:
+```
+docker-compose.yaml  
+caddy.yaml  
+livekit.yaml  
+redis.conf
 
+init_script.sh  
+caddy_data  
+```
+
+> `docker-compose.yaml` is the center for dev. (It will use `livekit.yaml` and `redis.conf`)
+
+> `caddy.yaml` is the center for serving. (It listens 443 port)
+
+> only `caddy.yaml` exposes its service to public, others running under `127.0.0.1`
+
+## Modify caddy to reverse proxy GRPC
+```
+# vim caddyl4_Dockerfile
+FROM golang:1.19-alpine as builder
+
+ARG TARGETOS
+ARG TARGETPLATFORM
+ARG TARGETARCH
+ARG CADDY_VERSION="v2.6.2"
+ENV CADDY_VERSION=$CADDY_VERSION
+RUN echo building caddy $CADDY_VERSION for "$TARGETOS"
+
+WORKDIR /workspace
+
+RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH xcaddy build \
+    --with github.com/abiosoft/caddy-yaml \
+    --with github.com/mholt/caddy-l4 \
+    --with github.com/mholt/caddy-grpc-web
+
+FROM alpine
+
+COPY --from=builder /workspace/caddy /bin/caddy
+```
+
+```
+# vim docker-compose.yaml
+version: "3.9"
+services:
+  caddy:
+    image: livekit/caddyl4
+    #build:
+    #  context: ./
+    #  dockerfile: ./caddyl4_Dockerfile
+    command: run --config /etc/caddy.yaml --adapter yaml
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+      - ./caddy.yaml:/etc/caddy.yaml
+      - ./caddy_data:/data
+  livekit:
+    image: livekit/livekit-server:latest
+    command: --config /etc/livekit.yaml
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml
+  redis:
+    image: redis:6-alpine
+    command: redis-server /etc/redis.conf
+    network_mode: "host"
+    volumes:
+      - ./redis.conf:/etc/redis.conf
+```
+
+```
+# vim caddy.yaml
+logging:
+  logs:
+    default:
+      level: INFO
+storage:
+  module: file_system
+  root: /data
+apps:
+  tls:
+    certificates:
+      automate:
+        - livekit-test.ai-tools-online.xyz
+        - livekit-test-turn.ai-tools-online.xyz
+        - livekit-test-grpc-call-service.ai-tools-online.xyz
+  http:
+    servers:
+      main_:
+        listen:
+          - ':443'
+        routes:
+          - match:
+              - host:
+                  - livekit-test-grpc-call-service.ai-tools-online.xyz
+          - handle:
+              - handler: reverse_proxy
+                flush_interval: -1
+                transport:
+                  protocol: http
+                  versions:
+                    - h2c
+                    - '2'
+                upstreams:
+                  - Dial: localhost:40058
+  layer4:
+    servers:
+      main:
+        listen:
+          - ':443'
+        routes:
+          - match:
+              - tls:
+                  sni:
+                    - livekit-test-turn.ai-tools-online.xyz
+            handle:
+              - handler: tls
+              - handler: proxy
+                upstreams:
+                  - dial:
+                      - localhost:5349
+          - match:
+              - tls:
+                  sni:
+                    - livekit-test.ai-tools-online.xyz
+            handle:
+              - handler: tls
+                connection_policies:
+                  - alpn:
+                      - http/1.1
+              - handler: proxy
+                upstreams:
+                  - dial:
+                      - localhost:7880
+
+```
+
+> `web-grpc` can get supported by using: https://caddyserver.com/docs/modules/http.handlers.grpc_web
+
+## Run livekit service
+
+```bash
 docker-compose up
 ```
 
@@ -73,14 +220,14 @@ Please ensure the following ports are accessible on the server
  * 50000-60000/UDP - for WebRTC over UDP
 
 Server URL: wss://livekit-test.ai-tools-online.xyz
-API Key: APIW5m6Et9G3M5f
-API Secret: pRpGBWvV9HLqiscETSe3vWwNcff4eaMuAAEHxHlG1seC
+API Key: APIVVhGF42WGq9a
+API Secret: TxOCYYNl6MIYtfedhaEq7lhyUsNX93DveVi3smZYSciB
 
-Here's a test token generated with your keys: 
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDcyNzc0MzIsImlzcyI6IkFQSVc1bTZFdDlHM001ZiIsImp0aSI6InRvbnlfc3RhcmsiLCJuYW1lIjoiVG9ueSBTdGFyayIsIm5iZiI6MTY3MTI3NzQzMiwic3ViIjoidG9ueV9zdGFyayIsInZpZGVvIjp7InJvb20iOiJzdGFyay10b3dlciIsInJvb21Kb2luIjp0cnVlfX0.zgwgI1Omj6v1gWozGaz0foLr4J3K2AG4b0L4yo7PN4o
+Here's a test token generated with your keys: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDczNzc2NjQsImlzcyI6IkFQSVZWaEdGNDJXR3E5YSIsImp0aSI6InRvbnlfc3RhcmsiLCJuYW1lIjoiVG9ueSBTdGFyayIsIm5iZiI6MTY3MTM3NzY2NCwic3ViIjoidG9ueV9zdGFyayIsInZpZGVvIjp7InJvb20iOiJzdGFyay10b3dlciIsInJvb21Kb2luIjp0cnVlfX0.17qEiI6wEXlLTtwsXW1lAxA18de7qgT14o8xxXbbnw8
 
 An access token identifies the participant as well as the room it's connecting to
 ```
+
 
 <!-- ## Install nginx
 ```bash

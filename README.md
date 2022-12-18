@@ -1,4 +1,4 @@
-# LiveKit Application (HTTPS Experiment)
+# LiveKit Application (Experiment)
 
 ## The needs
 folder 0: Prerequisites
