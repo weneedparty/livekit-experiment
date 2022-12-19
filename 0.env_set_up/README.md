@@ -144,26 +144,6 @@ apps:
       automate:
         - livekit-test.ai-tools-online.xyz
         - livekit-test-turn.ai-tools-online.xyz
-        - livekit-test-grpc-call-service.ai-tools-online.xyz
-  http:
-    servers:
-      main_:
-        listen:
-          - ':443'
-        routes:
-          - match:
-              - host:
-                  - livekit-test-grpc-call-service.ai-tools-online.xyz
-          - handle:
-              - handler: reverse_proxy
-                flush_interval: -1
-                transport:
-                  protocol: http
-                  versions:
-                    - h2c
-                    - '2'
-                upstreams:
-                  - Dial: localhost:40058
   layer4:
     servers:
       main:
@@ -193,15 +173,109 @@ apps:
                 upstreams:
                   - dial:
                       - localhost:7880
-
+  http:
+    servers:
+      main_:
+        listen:
+          - ':444'
+        routes:
+          - match:
+              - host:
+                  - livekit-test-grpc-call-service.ai-tools-online.xyz
+          - handle:
+              - handler: reverse_proxy
+                flush_interval: -1
+                transport:
+                  protocol: http
+                  versions:
+                    - h2c
+                    - '2'
+                upstreams:
+                  - Dial: localhost:40058
 ```
 
 > `web-grpc` can get supported by using: https://caddyserver.com/docs/modules/http.handlers.grpc_web
 
+## Set up nginx for TLS GRPC
+### Install nginx
+```bash
+apt install nginx -y
+```
+
+### Generate SSL keys by using OpenSSL
+
+```bash
+openssl req -newkey rsa:2048 -nodes -keyout grpc_call_service.key -x509 -days 365 -out grpc_call_service.crt
+```
+
+You'll get two files:
+```
+grpc_call_service.crt
+grpc_call_service.key
+```
+
+### Install and config nginx
+```bash
+apt install nginx -y
+
+cd /etc/nginx
+
+vim nginx.conf
+```
+
+```
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+        worker_connections 768;
+}
+
+http {
+        sendfile on;
+        tcp_nopush on;
+        types_hash_max_size 2048;
+
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+
+        ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3; # Dropping SSLv3, ref: POODLE
+        ssl_prefer_server_ciphers on;
+
+        access_log /var/log/nginx/access.log;
+        error_log /var/log/nginx/error.log;
+
+        gzip on;
+
+        #include /etc/nginx/conf.d/*.conf;
+        #include /etc/nginx/sites-enabled/*;
+
+        server {
+            listen 2233 ssl http2;
+
+            access_log /var/log/nginx/access.log;
+
+            ssl_certificate      /root/livekit_config/livekit-test.ai-tools-online.xyz/grpc_call_service.crt;
+            ssl_certificate_key      /root/livekit_config/livekit-test.ai-tools-online.xyz/grpc_call_service.key;
+
+            location / {
+                grpc_pass grpc://localhost:40058;
+            }
+        }
+}
+```
+
+```bash
+systemctl restart nginx
+```
+
 ## Run livekit service
 
 ```bash
-docker-compose up
+docker-compose up -d
+docker-compose logs -f
 ```
 
 ```
@@ -228,62 +302,3 @@ Here's a test token generated with your keys: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVC
 An access token identifies the participant as well as the room it's connecting to
 ```
 
-
-<!-- ## Install nginx
-```bash
-apt install nginx -y
-```
-
-## Generate SSL keys by using Let's Encrypt
-
-```bash
-apt install snapd
-snap install --classic certbot
-ln -s /snap/bin/certbot /usr/bin/certbot
-
-certbot certonly --nginx
-```
-
-You'll get two files for one url:
-```
-Certificate is saved at: /etc/letsencrypt/live/livekit-test-turn.ai-tools-online.xyz/fullchain.pem
-
-Key is saved at:         /etc/letsencrypt/live/livekit-test-turn.ai-tools-online.xyz/privkey.pem
-```
-
-## Install and config nginx
-```bash
-apt install nginx -y
-
-cd /etc/nginx
-
-vim nginx.conf
-```
-
-```
-        server {
-            listen 80 default_server;
-            return 301 https://$host$request_uri;
-        }
-
-        server {
-            listen 443 ssl;
-            server_name livekit-test.ai-tools.online.xyz;
-
-            ssl_certificate      /etc/letsencrypt/live/bbs.ai-tools-online.xyz/fullchain.pem;
-            ssl_certificate_key  /etc/letsencrypt/live/bbs.ai-tools-online.xyz/privkey.pem;
-
-            ssl_session_cache    shared:SSL:1m;
-            ssl_session_timeout  5m;
-
-            location / {
-                #proxy_pass http://144.202.109.163:8088/;
-                proxy_pass http://127.0.0.1:8088/;
-                #proxy_set_header Host $http_host;
-                #proxy_set_header X-Real-IP $remote_addr;
-                #proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                #proxy_set_header X-Forwarded-Proto $scheme;
-            }
-        }
-
-``` -->

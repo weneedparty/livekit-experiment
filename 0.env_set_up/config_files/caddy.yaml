@@ -11,26 +11,6 @@ apps:
       automate:
         - livekit-test.ai-tools-online.xyz
         - livekit-test-turn.ai-tools-online.xyz
-        - livekit-test-grpc-call-service.ai-tools-online.xyz
-  http:
-    servers:
-      main_:
-        listen:
-          - ':443'
-        routes:
-          - match:
-              - host:
-                  - livekit-test-grpc-call-service.ai-tools-online.xyz
-          - handle:
-              - handler: reverse_proxy
-                flush_interval: -1
-                transport:
-                  protocol: http
-                  versions:
-                    - h2c
-                    - '2'
-                upstreams:
-                  - Dial: localhost:40058
   layer4:
     servers:
       main:
@@ -60,3 +40,22 @@ apps:
                 upstreams:
                   - dial:
                       - localhost:7880
+  http:
+    servers:
+      main_:
+        listen:
+          - ':444'
+        routes:
+          - match:
+              - host:
+                  - livekit-test-grpc-call-service.ai-tools-online.xyz
+          - handle:
+              - handler: reverse_proxy
+                flush_interval: -1
+                transport:
+                  protocol: http
+                  versions:
+                    - h2c
+                    - '2'
+                upstreams:
+                  - Dial: localhost:40058
