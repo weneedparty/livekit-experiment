@@ -20,4 +20,4 @@ echo '\n'
 echo 'Run the following command:\n'
 echo $remind
 
-#rsync -avh --progress ./* root@104.292.209.163:/root/tgask/
+rsync -avh --progress ${executable_target_path} root@23.88.103.76:/root/livekit_config/livekit-test.ai-tools-online.xyz/call_service

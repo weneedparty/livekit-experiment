@@ -15,29 +15,29 @@ message Empty {
 
 service CallService {
     rpc SayHello (HelloRequest) returns (HelloReply);
-    rpc i_am_online(online_request) returns (online_response);
-    rpc call(call_request) returns (call_response);
+    rpc IAmOnline(OnlineRequest) returns (OnlineResponse);
+    rpc MakeACall(CallRequest) returns (CallResponse);
 }
 
-message online_request {
-    string jwt = 1;  // which contains the email address of this user
+message OnlineRequest {
+    string email = 1;  // better use jwt here for security, which contains the email address of this user
 }
 
-message online_response {
+message OnlineResponse {
     string error = 1;
     string json_string = 2;
     bool call_coming = 3;
-    string room_name = 4;
+    string room_name = 4; // Normally it would be the email address of the caller(the one who starts the call)
     string call_initiator = 5;
     string token = 6;
 }
 
-message call_request {
-    string jwt = 1;  // which contains the email address of this user
+message CallRequest {
+    string email = 1;  // better use jwt here for security, which contains the email address of this user
     string target_email = 2;
 }
 
-message call_response {
+message CallResponse {
     string error = 1;
     string json_string = 2;
     string room_name = 3; // we normally use the user email address as the room name

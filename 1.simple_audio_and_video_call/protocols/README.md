@@ -11,3 +11,10 @@ mkdir ./generated_grpc
 
 protoc --go_out=generated_grpc --go_opt=paths=source_relative --go-grpc_out=generated_grpc --go-grpc_opt=paths=source_relative --proto_path ../protocols call_service.proto
 ```
+
+### Flutter
+```bash
+mkdir -p lib/generated_grpc
+
+protoc --dart_out=grpc:lib/generated_grpc --proto_path ../protocols call_service.proto
+```

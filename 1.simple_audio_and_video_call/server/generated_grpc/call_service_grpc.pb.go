@@ -24,7 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type CallServiceClient interface {
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
 	IAmOnline(ctx context.Context, in *OnlineRequest, opts ...grpc.CallOption) (*OnlineResponse, error)
-	Call(ctx context.Context, in *CallRequest, opts ...grpc.CallOption) (*CallResponse, error)
+	MakeACall(ctx context.Context, in *CallRequest, opts ...grpc.CallOption) (*CallResponse, error)
 }
 
 type callServiceClient struct {
@@ -46,16 +46,16 @@ func (c *callServiceClient) SayHello(ctx context.Context, in *HelloRequest, opts
 
 func (c *callServiceClient) IAmOnline(ctx context.Context, in *OnlineRequest, opts ...grpc.CallOption) (*OnlineResponse, error) {
 	out := new(OnlineResponse)
-	err := c.cc.Invoke(ctx, "/call_service.CallService/i_am_online", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/call_service.CallService/IAmOnline", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *callServiceClient) Call(ctx context.Context, in *CallRequest, opts ...grpc.CallOption) (*CallResponse, error) {
+func (c *callServiceClient) MakeACall(ctx context.Context, in *CallRequest, opts ...grpc.CallOption) (*CallResponse, error) {
 	out := new(CallResponse)
-	err := c.cc.Invoke(ctx, "/call_service.CallService/call", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/call_service.CallService/MakeACall", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (c *callServiceClient) Call(ctx context.Context, in *CallRequest, opts ...g
 type CallServiceServer interface {
 	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
 	IAmOnline(context.Context, *OnlineRequest) (*OnlineResponse, error)
-	Call(context.Context, *CallRequest) (*CallResponse, error)
+	MakeACall(context.Context, *CallRequest) (*CallResponse, error)
 	mustEmbedUnimplementedCallServiceServer()
 }
 
@@ -82,8 +82,8 @@ func (UnimplementedCallServiceServer) SayHello(context.Context, *HelloRequest) (
 func (UnimplementedCallServiceServer) IAmOnline(context.Context, *OnlineRequest) (*OnlineResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IAmOnline not implemented")
 }
-func (UnimplementedCallServiceServer) Call(context.Context, *CallRequest) (*CallResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Call not implemented")
+func (UnimplementedCallServiceServer) MakeACall(context.Context, *CallRequest) (*CallResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MakeACall not implemented")
 }
 func (UnimplementedCallServiceServer) mustEmbedUnimplementedCallServiceServer() {}
 
@@ -126,7 +126,7 @@ func _CallService_IAmOnline_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/call_service.CallService/i_am_online",
+		FullMethod: "/call_service.CallService/IAmOnline",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CallServiceServer).IAmOnline(ctx, req.(*OnlineRequest))
@@ -134,20 +134,20 @@ func _CallService_IAmOnline_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CallService_Call_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _CallService_MakeACall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CallRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CallServiceServer).Call(ctx, in)
+		return srv.(CallServiceServer).MakeACall(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/call_service.CallService/call",
+		FullMethod: "/call_service.CallService/MakeACall",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CallServiceServer).Call(ctx, req.(*CallRequest))
+		return srv.(CallServiceServer).MakeACall(ctx, req.(*CallRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -164,12 +164,12 @@ var CallService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CallService_SayHello_Handler,
 		},
 		{
-			MethodName: "i_am_online",
+			MethodName: "IAmOnline",
 			Handler:    _CallService_IAmOnline_Handler,
 		},
 		{
-			MethodName: "call",
-			Handler:    _CallService_Call_Handler,
+			MethodName: "MakeACall",
+			Handler:    _CallService_MakeACall_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
